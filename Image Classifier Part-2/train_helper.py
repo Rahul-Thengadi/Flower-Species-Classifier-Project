@@ -3,6 +3,23 @@ from torch import nn
 from torchvision import models, datasets, transforms
 from workspace_utils import keep_awake
 from torch import optim
+import argparse
+
+def get_input_args():
+    
+    
+    parser = argparse.ArgumentParser()
+    
+    parser.add_argument('--data_dir', type=str, default='flowers/', help='location of datasets')
+    parser.add_argument('--save_dir', type=str, default='workspace_backup', help='checkpoint directory path')
+    parser.add_argument('--learning_rate', type=float, default=0.0001, help='learning rate for model')
+    parser.add_argument('--drop', type=float, nargs=2, default=[0.5, 0.3], help='enter dropout, expected two values')
+    parser.add_argument('--hidden_units', type=int,nargs=2, default=[4096, 512], help='enter at least 2 hidden units')
+    parser.add_argument('--epochs', type=int, default= 5, help='number of iterations while training')
+    parser.add_argument('--gpu', type=str, default=False, help='Usase: --gpu True')
+    parser.add_argument('--arch', type=str, default='vgg16', help='chosen architecture')
+
+    return parser.parse_args()  
 
 
 def load_data(data_dir):
@@ -90,7 +107,7 @@ def train_model(model, optimizer, epochs, device, data, loader):
                     print(f"Epoch {epoch+1}/{epochs}.. "
                           f"Train loss: {train_loss/print_every:.3f}.. "
                           f"Validation loss: {valid_loss/len(validloader):.3f}.. "
-                          f"Test accuracy: {accuracy/len(validloader):.3f}")
+                          f"Validation accuracy: {accuracy/len(validloader):.3f}")
                 
                 train_loss = 0
                 model.train()
@@ -138,13 +155,18 @@ def compute_accuracy(model, loader, device):
 
 def save_checkpoint(model , arch, optimizer, lr, epochs, hidden_units, drop, path):
     print("\nSaving ", model.name , " state and hyperparameters\n")
+    if model.name == 'vgg16' or model.name == 'densenet121':
+        classifier_state_dict = model.classifier.state_dict()
+    elif model.name == 'resnet50':
+        classifier_state_dict = model.fc.state_dict()
+    
     checkpoint = {
                    'dropout': drop,
                    'hidden_units': hidden_units,   
                    'arch': arch,
                    'lr': lr,
                    'epochs': epochs,
-                   'state_dict': model.classifier.state_dict(),
+                   'state_dict': classifier_state_dict,
                    'class_to_idx': model.class_to_idx,
                    'optimizer_state_dict': optimizer.state_dict()
                  }

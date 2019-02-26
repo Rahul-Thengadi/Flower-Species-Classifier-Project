@@ -1,14 +1,15 @@
-from get_input_args import get_input_args
+from predict_helper import get_input_args
 from predict_helper import load_checkpoint
 from predict_helper import process_image  
 from predict_helper import make_prediction
 import torch   
 import json
 
+
 in_arg = get_input_args()
 
 device = 'cpu'
-gpu = in_arg.gpu    
+  
 img_path = in_arg.img
 checkpoint_path = in_arg.checkpoint
 cat_to_name_path = in_arg.categeory

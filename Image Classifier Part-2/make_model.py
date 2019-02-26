@@ -27,7 +27,7 @@ def make_model(arch, hidden_units, drop):
         # freez the parameters from backward pass
         for param in model.parameters():
             param.requires_grad = False
-        input_size = model.classifier.in_features
+        input_size = model.fc.in_features
         
         
     out_size = 102

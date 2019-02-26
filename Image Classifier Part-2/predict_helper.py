@@ -4,6 +4,24 @@ import numpy as np
 import torch 
 from make_model import make_model
 from torch import optim
+from torchvision import transforms
+import argparse
+
+def get_input_args():
+    
+    
+    parser = argparse.ArgumentParser()
+    
+
+    parser.add_argument('--gpu', type=str, default=False, help='Usase: --gpu True')
+    parser.add_argument('--img', type=str, default= 'flowers/test/97/image_07719.jpg', help= 'path of image file')
+    parser.add_argument('--checkpoint', type=str, default= 'checkpoint/vgg_train_test.pt', help='path of checkpoint')
+    parser.add_argument('--topk', type= int, default=5, help= 'select top k(int) probability')
+    parser.add_argument('--categeory', type= str, default='cat_to_name.json', help= 'path of json file')
+
+    return parser.parse_args()  
+
+
 
 def load_checkpoint(path):
     
@@ -22,11 +40,13 @@ def load_checkpoint(path):
     model = make_model(arch, hidden_units, drop)
     
     model.class_to_idx = class_to_idx
-    model.classifier.load_state_dict(state_dict)
+    
     print("Loading ",  model.name, " checkpoint\n")
     if model.name == 'vgg16' or model.name == 'densenet121':
+        model.classifier.load_state_dict(state_dict)
         optimizer = optim.Adam(model.classifier.parameters(), lr=lr)
     elif model.name == 'resnet50':
+        model.fc.load_state_dict(state_dict)
         optimizer = optim.Adam(model.fc.parameters(), lr=lr)
         
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
@@ -43,23 +63,51 @@ def load_checkpoint(path):
 
 
 def process_image(image_path):
+    ''' Scales, crops, and normalizes a PIL image for a PyTorch model,
+        returns an Numpy array
+    '''
+    img_loader = transforms.Compose([
+        transforms.Resize(256), 
+        transforms.CenterCrop(224), 
+        transforms.ToTensor()])
     
-    # TODO: Process a PIL image for use in a PyTorch model
-    #print("Processing image\n")
-    img = Image.open(image_path)
-    img = img.resize((256,256))
-    width, height = img.size
-    #print(width, height)
-    img = img.crop(((width-224)/2, (height-224)/2,  width - (width-224)/2, height - (height-224)/2))
-    img = np.array(img)
-    np_img = np.zeros((224,224,3))
-    np_img = img/255
-    mean = [0.485, 0.456, 0.406]
-    std = [0.229, 0.224, 0.225] 
-    np_img = (np_img[:,:,:] - mean)/std
-    np_img = np_img.transpose(2, 0, 1)
+    pil_image = Image.open(image_path)
+    pil_image = img_loader(pil_image).float()
     
-    return np_img
+    np_image = np.array(pil_image)    
+    
+    mean = np.array([0.485, 0.456, 0.406])
+    std = np.array([0.229, 0.224, 0.225])
+    np_image = (np.transpose(np_image, (1, 2, 0)) - mean)/std    
+    np_image = np.transpose(np_image, (2, 0, 1))
+            
+    return np_image
+
+
+#############################################################################
+##### Alternate process_image ##############################################
+###########################################################################
+# def process_image(image):
+#     ''' Scales, crops, and normalizes a PIL image for a PyTorch model,
+#         returns an Numpy array
+#     '''
+#     img_loader = transforms.Compose([
+#         transforms.Resize(256), 
+#         transforms.CenterCrop(224), 
+#         transforms.ToTensor()])
+    
+#     pil_image = Image.open(image)
+#     pil_image = img_loader(pil_image).float()
+    
+#     np_image = np.array(pil_image)    
+    
+#     mean = np.array([0.485, 0.456, 0.406])
+#     std = np.array([0.229, 0.224, 0.225])
+#     np_image = (np.transpose(np_image, (1, 2, 0)) - mean)/std    
+#     np_image = np.transpose(np_image, (2, 0, 1))
+            
+#     return np_image
+
 
 
 def make_prediction(image_path, model, topk, device):

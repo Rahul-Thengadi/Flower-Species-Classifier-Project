@@ -1,4 +1,4 @@
-from get_input_args import get_input_args
+from train_helper import get_input_args
 from train_helper import load_data
 from make_model import make_model
 from train_helper import train_model
